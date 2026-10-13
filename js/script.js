@@ -5,6 +5,7 @@ const width = 800 - margin.left - margin.right;
 const height = 600 - margin.top - margin.bottom;
 
 let allData = []
+let filteredData = []
 let xVar = 'income', yVar = 'lifeExp', sizeVar = 'population', targetYear = 2000
 let xScale, yScale, sizeScale
 const t = 1000; // 1000ms = 1 second
@@ -38,6 +39,19 @@ function setupSelector(){
     .append('option')
     .text(d => d)
     .attr("value", d => d) 
+
+  dropdown.on("change", function(event) {
+    const selectedType = d3.select(this).property('value')
+
+    if (selectedType === "All") {
+      filteredData = allData
+    } else {
+      filteredData = allData.filter(d => d.primaryType === selectedType)
+    }
+
+    console.log(selectedType)
+    console.log(filteredData.length)
+  })
 
 }
 
@@ -132,6 +146,7 @@ function init(){
     })
     .then(data => {
             allData = data
+            filteredData = allData
             console.log("Total records: ", allData.length)
             console.log("First record: ", allData[0])
             setupSelector()
