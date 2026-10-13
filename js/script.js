@@ -106,21 +106,21 @@ function init(){
     d3.csv('./data/Crimes_-_2001_to_Present_20261007.csv', 
         function(d){
             return {  
-            // Besides converting the types, we also simpilify the variable names here. 
-            country: d.country,
-            continent: d.continent,
-            year: +d.year, // using + to convert to numbers; same below
-            lifeExp: +d.life_expectancy, 
-            income: +d.income_per_person, 
-            gdp: +d.gdp_per_capita, 
-            childDeaths: +d.number_of_child_deaths,
-            // Your turn: 
-            population: +d.population // convert d.population, and assign it to population
-        }
+              year: +d.Year,
+              primaryType: d["Primary Type"],
+              // making sure "true" and "True" are treated the same and same with "false" and "False"
+              arrest: String(d.Arrest).toLowerCase() === "true",
+              communityArea: d["Community Area"],
+              // some records have empty locations, this handles empty values to be null instead of a location 0
+              latitude: d.Latitude === "" ? null : +d.Latitude,
+              longitude: d.Longitude === "" ? null : +d.Longitude
+            }
     })
     .then(data => {
             // console.log(data)
             allData = data
+            console.log("Total records: ", allData.length)
+            console.log("First record: ", allData[0])
             setupSelector()
             
             // Initial rendering steps:
