@@ -80,6 +80,8 @@ function setupYearBrush() {
       if (event.selection === null) {
         selectedYearRange = null
         updateFilteredData()
+        d3.select("#selected-year-range")
+          .text(`All years`)
         return;
       }
 
@@ -90,6 +92,8 @@ function setupYearBrush() {
 
       selectedYearRange = [startYear, endYear]
       updateFilteredData()
+      d3.select("#selected-year-range")
+          .text(`${startYear} - ${endYear}`)
     })
 
   svg.append('g')
