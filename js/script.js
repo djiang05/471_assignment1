@@ -6,6 +6,7 @@ const height = 600 - margin.top - margin.bottom;
 
 let allData = []
 let filteredData = []
+let selectedYearRange = null
 let xVar = 'income', yVar = 'lifeExp', sizeVar = 'population', targetYear = 2000
 let xScale, yScale, sizeScale
 const t = 1000; // 1000ms = 1 second
@@ -77,7 +78,8 @@ function setupYearBrush() {
     .extent([[0, 0], [brushWidth, brushHeight]])
     .on("end", function(event) {
       if (event.selection === null) {
-        console.log("Brush cleared")
+        selectedYearRange = null
+        updateFilteredData()
         return;
       }
 
@@ -86,7 +88,8 @@ function setupYearBrush() {
       const startYear = Math.floor(xScale.invert(startPixel))
       const endYear = Math.ceil(xScale.invert(endPixel)) - 1
 
-      console.log("Selected years: ", startYear, endYear)
+      selectedYearRange = [startYear, endYear]
+      updateFilteredData()
     })
 
   svg.append('g')
@@ -107,6 +110,13 @@ function updateFilteredData() {
   if (selectedArrest !== "All"){
     filteredData = filteredData.filter(d => String(d.arrest) === selectedArrest)
   }
+
+  if (selectedYearRange !== null) {
+    const [start, end] = selectedYearRange
+    filteredData = filteredData.filter(d => d.year >= start && d.year <= end)
+  }
+
+  console.log("Filtered records:", filteredData.length)
 }
 
 function updateAxes(){
