@@ -20,11 +20,25 @@ const svg = d3.select('#vis')
 // Here’s what each function is responsible for:
 
 function setupSelector(){
-  // Handles UI changes (sliders, dropdowns)
-  // Anytime the user tweaks something, this function reacts.
-  // May need to call updateAxes() and updateVis() here when needed!
+  const dropdown = d3.select("#crime-type-filter")
+  const primaryTypes = new Set()
 
-    
+  allData.forEach(d => {
+    // some entries were empty so don't want to include them as primary types
+    if (d.primaryType && d.primaryType.trim() !== "") {
+      primaryTypes.add(d.primaryType)
+    }
+  })
+
+  const options = ["All", ...[...primaryTypes].sort()]
+
+  dropdown.selectAll("option")
+    .data(options)
+    .enter()
+    .append('option')
+    .text(d => d)
+    .attr("value", d => d) 
+
 }
 
 function updateAxes(){
@@ -117,7 +131,6 @@ function init(){
             }
     })
     .then(data => {
-            // console.log(data)
             allData = data
             console.log("Total records: ", allData.length)
             console.log("First record: ", allData[0])
