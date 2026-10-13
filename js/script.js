@@ -40,19 +40,28 @@ function setupSelector(){
     .text(d => d)
     .attr("value", d => d) 
 
-  dropdown.on("change", function(event) {
-    const selectedType = d3.select(this).property('value')
+  dropdown.on("change", updateFilteredData)
 
-    if (selectedType === "All") {
-      filteredData = allData
-    } else {
-      filteredData = allData.filter(d => d.primaryType === selectedType)
-    }
+  d3.select("#arrest-filter")
+    .on("change", updateFilteredData)
 
-    console.log(selectedType)
-    console.log(filteredData.length)
-  })
+}
 
+function updateFilteredData() {
+  const selectedType = d3.select("#crime-type-filter").property("value")
+  const selectedArrest = d3.select("#arrest-filter").property("value")
+
+  if (selectedType === "All") {
+    filteredData = allData
+  } else {
+    filteredData = allData.filter(d => d.primaryType === selectedType)
+  }
+
+  if (selectedArrest !== "All"){
+    filteredData = filteredData.filter(d => String(d.arrest) === selectedArrest)
+  }
+
+  console.log("Filtered records:", filteredData.length)
 }
 
 function updateAxes(){
