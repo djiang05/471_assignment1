@@ -47,6 +47,53 @@ function setupSelector(){
 
 }
 
+// help and documentation from https://d3js.org/d3-brush
+function setupYearBrush() {
+  const brushWidth = 700
+  const brushHeight = 40
+
+  // Find the earliest and latest years in the dataset
+  const [minYear, maxYear] = d3.extent(
+      allData,
+      d => Number.isFinite(d.year) && d.year >= 2001 ? d.year : undefined
+  )
+
+  const xScale = d3.scaleLinear()
+      .domain([minYear, maxYear + 1])
+      .range([0, brushWidth])
+
+  const svg = d3.select("#year-brush")
+      .append("svg")
+      .attr("width", brushWidth)
+      .attr("height", brushHeight + 35)
+
+  svg.append("g")
+      .attr("transform", `translate(0, ${brushHeight})`)
+      .call(d3.axisBottom(xScale)
+          .ticks(8)
+          .tickFormat(d3.format("d")))
+          
+  const brush = d3.brushX()
+    .extent([[0, 0], [brushWidth, brushHeight]])
+    .on("end", function(event) {
+      if (event.selection === null) {
+        console.log("Brush cleared")
+        return;
+      }
+
+      const [startPixel, endPixel] = event.selection
+
+      const startYear = Math.floor(xScale.invert(startPixel))
+      const endYear = Math.ceil(xScale.invert(endPixel)) - 1
+
+      console.log("Selected years: ", startYear, endYear)
+    })
+
+  svg.append('g')
+      .attr('class', 'brush')
+      .call(brush)
+}
+
 function updateFilteredData() {
   const selectedType = d3.select("#crime-type-filter").property("value")
   const selectedArrest = d3.select("#arrest-filter").property("value")
@@ -60,8 +107,6 @@ function updateFilteredData() {
   if (selectedArrest !== "All"){
     filteredData = filteredData.filter(d => String(d.arrest) === selectedArrest)
   }
-
-  console.log("Filtered records:", filteredData.length)
 }
 
 function updateAxes(){
@@ -143,7 +188,7 @@ function init(){
     d3.csv('./data/Crimes_-_2001_to_Present_20261007.csv', 
         function(d){
             return {  
-              year: +d.Year,
+              year: d.Year.trim() === "" ? null : +d.Year,
               primaryType: d["Primary Type"],
               // making sure "true" and "True" are treated the same and same with "false" and "False"
               arrest: String(d.Arrest).toLowerCase() === "true",
@@ -159,6 +204,7 @@ function init(){
             console.log("Total records: ", allData.length)
             console.log("First record: ", allData[0])
             setupSelector()
+            setupYearBrush()
             
             // Initial rendering steps:
             // P.S. You could move these into setupSelector(), 
