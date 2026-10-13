@@ -99,6 +99,19 @@ function setupYearBrush() {
   svg.append('g')
       .attr('class', 'brush')
       .call(brush)
+
+  // resetting filter values
+  d3.select("#reset-filters")
+    .on("click", function() {
+      d3.select("#crime-type-filter")
+        .property("value", "All")
+      
+      d3.select("#arrest-filter")
+        .property("value", "All")
+
+      svg.select(".brush")
+        .call(brush.move, null)
+    })
 }
 
 function updateFilteredData() {
