@@ -134,6 +134,10 @@ function updateFilteredData() {
   }
 
   console.log("Filtered records:", filteredData.length)
+
+  // TODO: Once the bar chart and map are finished,
+  // call their update functions here using filteredData.
+  // Both visualizations should reflect the current filters.
 }
 
 function updateAxes(){
