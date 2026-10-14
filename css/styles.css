@@ -12,7 +12,6 @@ body {
   color: #222222;
 }
 
-/* Main page container */
 .container {
   max-width: 900px;
   margin: 2rem auto;
@@ -29,13 +28,16 @@ h1 {
   color: #555555;
 }
 
-/* Chart container */
 #vis {
   width: 100%;
   margin: 1rem 0;
 }
 
-/* D3-generated SVG */
+.map {
+  margin: 2rem 0;
+  border: 1px solid #ccc;
+}
+
 #vis svg {
   display: block;
   max-width: 100%;
@@ -45,7 +47,6 @@ h1 {
   overflow: visible;
 }
 
-/* X and Y axes */
 #vis .axis path,
 #vis .axis line {
   stroke: #555555;
@@ -58,14 +59,12 @@ h1 {
   fill: #333333;
 }
 
-/* Axis labels */
 #vis .labels {
   font-size: 13px;
   font-weight: bold;
   fill: #222222;
 }
 
-/* Bar chart bars */
 #vis .bar {
   fill: steelblue;
 }
@@ -73,7 +72,6 @@ h1 {
 #vis .bar:hover {
   fill: #285f8f;
 }
-
 
 .filters {
   display: flex;
@@ -99,6 +97,16 @@ h1 {
   font-size: 0.9rem;
 }
 
-#vis .bar:hover {
-  fill: #285f8f;
+#tooltip {
+  position: absolute;
+  padding: 10px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  pointer-events: none;
+  font-size: 12px;
+}
+
+#selected-year-range {
+  font-weight: bold;
 }

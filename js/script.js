@@ -15,6 +15,19 @@ let filteredData = [];
 
 let xScale, yScale;
 
+// Individual crime records used for dynamic filtering and brushing
+let allData = [];
+let filteredCrimes = [];
+let selectedYearRange = null;
+
+let filteredDistrictArrests = null;
+let filteredYearlyDistrictArrests = null;
+
+const mapProjection = d3.geoMercator()
+
+const zoom = d3.zoom()
+    .on("zoom", handleZoom)
+
 // Create one SVG to display either chart
 const svg = d3
   .select("#vis")
@@ -39,6 +52,297 @@ function showMessage(msg) {
     .style("fill", "crimson")
     .text(msg);
 }
+
+
+function setupSelector() {
+  const dropdown = d3.select("#crime-type-filter")
+  const primaryTypes = new Set()
+
+  allData.forEach(d => {
+    // Some records have empty crime types
+    if (d.primaryType && d.primaryType.trim() !== "") {
+      primaryTypes.add(d.primaryType)
+    }
+  })
+
+  const options = ["All", ...[...primaryTypes].sort()]
+
+  dropdown.selectAll("option")
+    .data(options)
+    .enter()
+    .append("option")
+    .text(d => d)
+    .attr("value", d => d)
+
+  dropdown.on("change", updateFilteredData)
+
+  d3.select("#arrest-filter")
+    .on("change", updateFilteredData)
+}
+
+
+function updateFilteredData() {
+  const selectedType = d3.select("#crime-type-filter").property("value")
+  const selectedArrest = d3.select("#arrest-filter").property("value")
+
+  // Filter by crime type
+  if (selectedType === "All") {
+    filteredCrimes = allData
+  } else {
+    filteredCrimes = allData.filter(d => d.primaryType === selectedType)
+  }
+
+  // Filter by arrest status
+  if (selectedArrest !== "All") {
+    filteredCrimes = filteredCrimes.filter(d => String(d.arrest) === selectedArrest)
+  }
+
+  // Filter by the selected year range
+  if (selectedYearRange !== null) {
+    const [start, end] = selectedYearRange
+    filteredCrimes = filteredCrimes.filter(d => d.year >= start && d.year <= end)
+  }
+
+  const filtersActive = selectedType !== "All" || selectedArrest !== "All" || selectedYearRange !== null
+
+  if (filtersActive) {
+    filteredDistrictArrests = aggregateArrestsByDistrict(filteredCrimes)
+    filteredYearlyDistrictArrests = aggregateArrestsByYearDistrict(filteredCrimes)
+  } else {
+    filteredDistrictArrests = null
+    filteredYearlyDistrictArrests = null
+  }
+
+  // only update the bar chart once loaded
+  if (arrestsByDistrict.length > 0) {
+    showBarChart()
+  }
+
+  console.log("Filtered crimes:", filteredCrimes.length)
+
+  // TODO: Connect filteredCrimes to the map.
+}
+
+function aggregateArrestsByDistrict(data) {
+  const arrestedCrimes = data.filter(d => d.arrest === true && Number(d.district) > 0)
+
+  // Group by district and count arrests
+  const totals = d3.rollups(
+    arrestedCrimes,
+    values => values.length,
+    d => String(Number(d.district))
+  )
+
+  // Convert grouped pairs to objects and sort numerically
+  const districtData = totals.map(([district, count]) => ({
+    district: district,
+    arrests: count
+  })).sort((a, b) => Number(a.district) - Number(b.district))
+
+  return districtData
+}
+
+function aggregateArrestsByYearDistrict(data) {
+  const arrestedCrimes = data.filter(
+    d => d.arrest === true &&
+    Number(d.district) > 0 &&
+    Number.isFinite(d.year)
+  )
+  const totals = d3.rollups(
+    arrestedCrimes,
+    values => values.length,
+    d => String(Number(d.district)),
+    d => d.year
+  )
+
+  const yearlyData = totals.flatMap(([district, years]) => {
+    // TODO: Use years.map() to convert each
+    // [year, arrests] pair into an object containing:
+    // district, year, arrests
+    return years.map(([year, count]) => ({
+      district: district,
+      year: year,
+      arrests: count
+    }))
+
+  })
+
+  // Sort by district first, then by year
+  yearlyData.sort((a, b) =>
+    Number(a.district) - Number(b.district) || a.year - b.year
+  )
+
+  return yearlyData
+}
+
+// help and documentation from https://d3js.org/d3-brush
+function setupYearBrush() {
+  const brushWidth = 700
+  const brushHeight = 40
+
+  // Find the earliest and latest years in the dataset
+  const [minYear, maxYear] = d3.extent(
+      allData,
+      d => Number.isFinite(d.year) && d.year >= 2001 ? d.year : undefined
+  )
+
+  const xScale = d3.scaleLinear()
+      .domain([minYear, maxYear + 1])
+      .range([0, brushWidth])
+
+  const svg = d3.select("#year-brush")
+      .append("svg")
+      .attr("width", brushWidth)
+      .attr("height", brushHeight + 35)
+
+  svg.append("g")
+      .attr("transform", `translate(0, ${brushHeight})`)
+      .call(d3.axisBottom(xScale)
+          .ticks(8)
+          .tickFormat(d3.format("d")))
+
+  const brush = d3.brushX()
+    .extent([[0, 0], [brushWidth, brushHeight]])
+    .on("end", function(event) {
+      if (event.selection === null) {
+        selectedYearRange = null
+        updateFilteredData()
+        d3.select("#selected-year-range")
+          .text(`All years`)
+        return;
+      }
+
+      const [startPixel, endPixel] = event.selection
+
+      const startYear = Math.floor(xScale.invert(startPixel))
+      const endYear = Math.ceil(xScale.invert(endPixel)) - 1
+
+      selectedYearRange = [startYear, endYear]
+      updateFilteredData()
+      d3.select("#selected-year-range")
+          .text(`${startYear} - ${endYear}`)
+    })
+
+  svg.append('g')
+      .attr('class', 'brush')
+      .call(brush)
+
+  // resetting filter values
+  d3.select("#resetFilters")
+    .on("click", function() {
+      d3.select("#minArrests").property("value", 0);
+
+      d3.select("#crime-type-filter")
+        .property("value", "All")
+
+      d3.select("#arrest-filter")
+        .property("value", "All")
+
+      svg.select(".brush")
+        .call(brush.move, null)
+      })
+    }
+
+
+function initCrimeData() {
+  d3.csv('./data/Crimes_-_2001_to_Present_20261007.csv',
+    function(d) {
+      return {
+        year: d.Year.trim() === "" ? null : +d.Year,
+        primaryType: d["Primary Type"],
+        // making sure "true" and "True" are treated the same and same with "false" and "False"
+        arrest: String(d.Arrest).toLowerCase() === "true",
+        communityArea: d["Community Area"],
+        // some records have empty locations, this handles empty values to be null instead of a location 0
+        latitude: d.Latitude === "" ? null : +d.Latitude,
+        longitude: d.Longitude === "" ? null : +d.Longitude,
+        district: String(d.District).trim()
+      }
+    })
+    .then(data => {
+      allData = data
+      filteredCrimes = allData
+
+      setupSelector()
+      setupYearBrush()
+
+      console.log("Crime records loaded:", allData.length)
+    })
+    .catch(error => console.error("Error loading crime data:", error))
+}
+
+
+function handleZoom(e) {
+  // Move and scale the map when the user zooms or pans
+  d3.select(".map g")
+      .attr("transform", e.transform)
+
+  // Keep map points the same visible size when zooming
+  d3.selectAll(".mapPoints")
+      .attr("r", 5 / e.transform.k)
+}
+
+function initZoom() {
+  d3.select(".map")
+      .call(zoom)
+}
+
+d3.json("./data/zipcodes.geojson")
+.then(function(json) {
+    // create an initial projection
+
+    //Define path generator
+    var path = d3.geoPath().projection(mapProjection);
+    var bounds = path.bounds(json);
+
+    // Find aspect ratio of map and scale it up to desired dimensions
+    minSideLen = 500
+    let mWidth = bounds[1][0] - bounds[0][0];
+    let mHeight = bounds[1][1] - bounds[0][1];
+
+    const mScale = 500 / Math.min(mWidth, mHeight);
+    mWidth *= mScale;
+    mHeight *= mScale;
+
+    mapProjection.fitExtent([[0, 0], [mWidth, mHeight]], json);
+
+    // Create SVG element
+    var svg = d3.select(".map")
+                .attr("width", mWidth)
+                .attr("height", mHeight)
+
+    // Create a g within the svg so we can zoom and pan it
+    var g = svg.append('g');
+
+    //Bind data and create one path per GeoJSON feature
+    g.selectAll("path")
+        .data(json.features)
+        .enter()
+        .append("path")
+        .attr("d", path)
+        .attr("class", "zipcode")
+        .style("fill", "none")
+        .style("stroke", "black")
+        .style("stroke-width", "1px");;
+
+    var center = d3.geoCentroid(json);
+
+    g.selectAll('.mapPoints')
+        .data([center])
+        .enter()
+        .append('circle')
+            .attr('class', 'mapPoints')
+            .attr('cx', d => mapProjection(d)[0])
+            .attr('cy', d => mapProjection(d)[1])
+            .attr('r', 5)
+            .style('fill', 'red');
+
+    initZoom();
+})
+.catch(function(error) {
+    console.error("Failed to load GeoJSON:", error);
+});
+
 
 
 /* Load the CSV files and initialize the visualization */
@@ -118,13 +422,6 @@ function init() {
           showBarChart();
         });
 
-      // Reset the minimum-arrests filter
-      d3.select("#resetFilters")
-        .on("click", () => {
-          d3.select("#minArrests").property("value", 0);
-          showBarChart();
-        });
-
       // Return from the line graph to the bar chart
       d3.select("#backButton")
         .on("click", () => {
@@ -153,14 +450,16 @@ function showBarChart() {
     Number(d3.select("#minArrests").property("value")) || 0
   );
 
+  const chartData = filteredDistrictArrests === null ? arrestsByDistrict : filteredDistrictArrests;
+
   // Filter districts by their total arrest counts
-  filteredData = arrestsByDistrict.filter(
+  filteredData = chartData.filter(
     (d) => d.arrests >= minArrests
   );
 
   // Update the status text
   d3.select("#filterStatus").text(
-    `Showing ${filteredData.length} of ${arrestsByDistrict.length} districts`
+    `Showing ${filteredData.length} of ${chartData.length} districts`
   );
 
   // Remove the previous chart
@@ -293,9 +592,13 @@ function showTrendChart(district) {
   // Remove the bar chart and its axes
   svg.selectAll("*").remove();
 
+  const yearlyChartData = filteredYearlyDistrictArrests === null
+    ? arrestsByYearDistrict
+    : filteredYearlyDistrictArrests;
+
   // Get yearly arrest counts for the selected district
-  const trendData = arrestsByYearDistrict
-    .filter((d) => d.district === district)
+  const trendData = yearlyChartData
+    .filter(d => d.district === district)
     .sort((a, b) => a.year - b.year);
 
   // Handle missing yearly data
@@ -422,7 +725,7 @@ function showTrendChart(district) {
 
 // Start the visualization when the page loads
 window.addEventListener("load", init);
-
+window.addEventListener("load", initCrimeData);
 
 
 
