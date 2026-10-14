@@ -1,0 +1,104 @@
+
+/* Apply consistent sizing without restricting every element's width */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  line-height: 1.5;
+  margin: 0;
+  background-color: #ffffff;
+  color: #222222;
+}
+
+/* Main page container */
+.container {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+h1 {
+  margin-bottom: 0.5rem;
+  font-size: 1.8rem;
+}
+
+.description {
+  margin-bottom: 1rem;
+  color: #555555;
+}
+
+/* Chart container */
+#vis {
+  width: 100%;
+  margin: 1rem 0;
+}
+
+/* D3-generated SVG */
+#vis svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1rem 0;
+  border: 1px solid #cccccc;
+  overflow: visible;
+}
+
+/* X and Y axes */
+#vis .axis path,
+#vis .axis line {
+  stroke: #555555;
+  shape-rendering: crispEdges;
+}
+
+#vis .axis text {
+  font-size: 11px;
+  font-family: Arial, sans-serif;
+  fill: #333333;
+}
+
+/* Axis labels */
+#vis .labels {
+  font-size: 13px;
+  font-weight: bold;
+  fill: #222222;
+}
+
+/* Bar chart bars */
+#vis .bar {
+  fill: steelblue;
+}
+
+#vis .bar:hover {
+  fill: #285f8f;
+}
+
+
+.filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 1rem 0;
+}
+
+.filters label {
+  font-weight: bold;
+}
+
+.filters select,
+.filters input,
+.filters button {
+  padding: 6px 10px;
+}
+
+#filterStatus {
+  margin-bottom: 0.5rem;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+#vis .bar:hover {
+  fill: #285f8f;
+}
