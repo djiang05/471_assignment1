@@ -69,9 +69,49 @@
         Reset All Filters
       </button>
 
-      <div id="vis"></div>
+      <div id="visualizations">
+        <div id="vis"></div>
+        <svg class="map"></svg>  
+      </div>
+      <p>Note that, for the purposes of rendering the map in a reasonable amount of time and having responsive interaction, the map only displays a small subset of the original data. Some districts (such as 31 and 61) do not have any observations in this subset.</p>
+      <h1>WRITE UP:</h1>
+      <h2>Introduction:</h2>
+      <p>
+        The dataset used is the Chicago Crimes dataset. Each item in the data is either a reported incident or a record for each victim of a murder. 
+        Crime Type, Arrest Status, and Year were selected to provide more detail about each crime. Each of these variables can be filtered on in the visualizations above.
+        Latitude, Longitude, Community Area, and Police District were used as geographical variables. Latitude and Longitude are used to plot observations on the map, and the Community Area is listed in tooltips as the GeoJSON used breaks Chicago down by community areas. In the bar chart, arrests are broken down by Police District in order to invesetigate differing arrest trends and behaviors across districts.
+      </p>
+      <h2>Rationale:</h2>
+      <p>
+        Dynamic filters and queries were implemented with dropdowns and sliders for the variables listed above. <br>
+        Panning and zooming was implemented on the map, and tooltips were implemented for each mark on the map. <br><br>
 
-      <svg class="map"></svg>
+        Panning and zooming were obvious choices for an interaction with the map. <br>
+        Due to there being too many different values for district, community area, and crime type, tooltips were chosen to communicate these values rather than trying to find different colors or shapes for each unique value of these attributes.<br>
+        A map was chosen in the first place as it is one of the quickest and most effective ways to illustrate the geographical distribution of the data. From there, the above interactions emerged naturally.<br>
+        Fill was used to encode arrest status on the map, as it seemed more effective than shape. Shape may have required more focus to discern and overlapping points may have interfered with identifying the shape of a given mark. Since arrest is a boolean value, fill works well for this attribute.
+      </p>
+      <h2>References:</h2>
+      <p>
+        <b>Data Source:</b> <a href="https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-Present/ijzp-q8t2/about_data">Chicago Crimes - 2001 to Present</a><br><br>
+        <b>Visualization Examples Adapted:</b> <br>
+        Map Zooming and Panning: <a href="https://www.d3indepth.com/zoom-and-pan/">D3 Zoom and Pan</a><br>
+        <a href="https://d3og.com/cjhin/27e01c636dcc0bfa256c7a225971354d/">Static Chicago Map</a>
+      </p>
+      <h2>Development Process:</h2>
+      <p>
+        <b>Daniel:</b> Implemented bar chart and line charts for each district. <br>
+        <b>David:</b> Implemented interactive map. Roughly 20 man hours. <br>
+        <b>Richard:</b> Implemented dynamic filtering/querying, performed optimization and bugfixes on both visualizations. <br><br>
+
+        Daniel and David began work on each of their assigned visualizations. Richard later began work on interactions. Richard and David then worked to integrate interaction across visualizations so that filtering would be reflected on both the chart(s) and the map.
+      </p>
+      <h2>AI Usage:</h2>
+      <p>
+        <b>Daniel:</b>  <br>
+        <b>David:</b> AI Overview in Google Searches was used to find code examples and documentation for specific functions more quickly. <br>
+        <b>Richard:</b> In order to better comprehend concepts of D3.js and JavaScript, to fix errors and to check our implementation in relation to the requirements of the project, I made use of ChatGPT as an additional tool. Furthermore, AI support took the form of examples of code, as well as advice concerning the process of improving data filtering and learnings gained with innovations in the scope of visualizations.
+      </p>
     </div>
     
     <div id="tooltip" style="display:none"></div> 

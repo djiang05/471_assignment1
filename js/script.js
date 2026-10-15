@@ -520,14 +520,6 @@ function updateMap() {
           .style('stroke-width', `${pathWidth / currentMapZoom}px`);
   })
 
-  circles.selectAll("title")
-    .data(d => [d])
-    .join("title")
-    .text(d => useGrid
-      ? `${d.count} nearby incidents - ${d.arrest ? "Arrested" : "Not arrested"}`
-      : `${d.primaryType} (${d.year}) - ${d.arrest ? "Arrested" : "Not arrested"}`
-    );
-
   d3.select("#mapStatus").text(
     `${marks.length.toLocaleString()} map markers displayed` +
     (useGrid ? " (nearby incidents grouped)" : "")
@@ -669,6 +661,15 @@ function showBarChart() {
     showMessage("No districts match these filters.");
     return;
   }
+
+  svg
+    .append("text")
+    .attr("class", "labels")
+    .attr("x", width / 2)
+    .attr("y", -15)
+    .attr("text-anchor", "middle")
+    .style("font-weight", "bold")
+    .text(`Number of Arrests in Each District`);
 
   // Draw the axes and bars
   updateAxes();
