@@ -31,6 +31,7 @@ const pathWidth = 1;
 const mapProjection = d3.geoMercator();
 const zoom = d3.zoom()
     .on('zoom', handleZoom);
+var zoomLevel = 1;
 
 
 // Create one SVG to display either chart
@@ -258,15 +259,17 @@ function initCrimeData() {
         primaryType: d["Primary Type"],
         // making sure "true" and "True" are treated the same and same with "false" and "False"
         arrest: String(d.Arrest).toLowerCase() === "true",
-        communityArea: d["Community Area"],
+        communityArea: String(+d["Community Area"]).trim(),
         // some records have empty locations, this handles empty values to be null instead of a location 0
         latitude: d.Latitude === "" ? null : +d.Latitude,
         longitude: d.Longitude === "" ? null : +d.Longitude,
-        district: String(d.District).trim()
+        district: String(+d.District).trim()
       }
     })
     .then(data => {
-      allData = data
+      allData = data.filter(d =>  // Filtering out invalid points on the map
+        d.latitude != null && d.longitude != null
+      )
       filteredCrimes = allData
 
       setupSelector()
@@ -281,17 +284,18 @@ function initCrimeData() {
 // Zooming adapted from: https://www.d3indepth.com/zoom-and-pan/
 function handleZoom(e) {
     // Map zooming function
-    
     // Pan and zoom the map
     d3.select('.map g')
         .attr('transform', e.transform);
     
+    // Record zoom level
+    zoomLevel = e.transform.k
     // Keep features a constant size
     d3.selectAll('.mapPoints')
-        .attr('r', pointSize / e.transform.k)
-        .style('stroke-width', `${pathWidth / e.transform.k}px`);
+        .attr('r', pointSize / zoomLevel)
+        .style('stroke-width', `${pathWidth / zoomLevel}px`);
     d3.selectAll('.map g path')
-        .style("stroke-width", `${pathWidth / e.transform.k}px`);
+        .style("stroke-width", `${pathWidth / zoomLevel}px`);
 }
 function initZoom() {
     d3.select('.map')
@@ -323,7 +327,7 @@ function initMap(){
         mWidth *= mScale;
         mHeight *= mScale;
 
-        mapProjection.fitExtent([[10, 10], [mWidth-10, mHeight-10]], json);
+        mapProjection.fitExtent([[10, 50], [mWidth-10, mHeight-10]], json);
         
         // Set map svg dimensions
         mapsvg
@@ -343,11 +347,13 @@ function initMap(){
         
         
         initZoom();
+        addMapLegend();
         updateMap();
     })
     .catch(function(error) {
         console.error("Failed to load GeoJSON:", error);
     });;
+    
 }
 function updateMap(){
   mapg.selectAll('.mapPoints')
@@ -359,7 +365,33 @@ function updateMap(){
         .attr('class', 'mapPoints')
         .attr('cx', d => mapProjection([+d.longitude, +d.latitude])[0])
         .attr('cy', d => mapProjection([+d.longitude, +d.latitude])[1])
-        .attr('r', pointSize)
+        .attr('r', pointSize / zoomLevel)
+        .style('opacity', .5) // Slight transparency for better visibility
+        .on('mouseover', function (event, d) {
+            // console.log(d) // See the data point in the console for debugging
+            d3.select('#tooltip')
+                // if you change opacity to hide it, you should also change opacity here
+                .style("display", 'block') // Make the tooltip visible
+                .html( // Change the html content of the <div> directly
+                `<strong>${d.primaryType}</strong><br/>
+                Community Area: ${d.communityArea}<br/>
+                District: ${d.district}
+                `)
+                .style("left", (event.pageX + 20) + "px")
+                .style("top", (event.pageY - 28) + "px");
+              d3.select(this) // Refers to the hovered circle
+                .attr('r', 1.5 * pointSize / zoomLevel)
+                .style('stroke', 'black')
+                .style('stroke-width', `${4 / zoomLevel}px`)
+        })
+        .on("mouseout", function (event, d) {
+            d3.select('#tooltip')
+            .style('display', 'none') // Hide tooltip when cursor leaves
+            d3.select(this) // Refers to the hovered circle
+                .attr('r', pointSize / zoomLevel)
+                .style('stroke', 'red')
+                .style('stroke-width', `${pathWidth / zoomLevel}px`);
+        })
       },
       function(update){
         return update
@@ -370,9 +402,38 @@ function updateMap(){
     )
     .style('fill', d => d.arrest ? "red" : "none")
     .style('stroke', 'red')
-    .style('stroke-width', `${pathWidth}px`);
+    .style('stroke-width', `${pathWidth / zoomLevel}px`);
 }
-
+function addMapLegend(){
+  let legendDotSize = 5;
+  let betweenSpacing = 100;
+  let offset = 150;
+  let legendInfo = [['Arrested', 'red'], ['Not Arrested', 'none']]
+  mapsvg.selectAll('legendDot')
+      .data(legendInfo)
+      .enter()
+      .append("circle")
+      .attr("cy", margin.top/2)
+      .attr("cx", (d, i) => i * (legendDotSize + betweenSpacing) + offset)
+      .attr('r', legendDotSize)
+      .style("fill", d => d[1])
+      .style('stroke', 'red')
+      .style('stroke-width', `${pathWidth}px`);
+    
+    
+    // use "colorScale" to fill them; colorScale is a global variable we defined, used in coloring bubbles
+        
+    mapsvg.selectAll("legendName")
+        .data(legendInfo)
+        .enter()
+        .append("text")
+        .attr("y", margin.top/2 + legendDotSize) 
+        .attr("x", (d, i) => i * (legendDotSize + betweenSpacing) + offset + 20)  
+        .style("fill", "black")  
+        .text(d => d[0]) 
+        .attr("text-anchor", "left")
+        .style('font-size', '13px')
+}
 
 
 /* Load the CSV files and initialize the visualization */
@@ -750,6 +811,10 @@ function showTrendChart(district) {
     .attr("y", -margin.left + 20)
     .attr("text-anchor", "middle")
     .text("Number of Arrests");
+
+  // Filter crimes data to current district so that changes will be reflected on the map
+  filteredCrimes = filteredCrimes.filter(d => Number(d.district) == district)
+  updateMap();
 }
 
 
