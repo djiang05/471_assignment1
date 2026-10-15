@@ -28,6 +28,10 @@ const mapsvg = d3.select(".map");
 const mapg = mapsvg.append('g');
 const pointSize = 3;
 const pathWidth = 1;
+let mapReady = false;
+let currentMapZoom = 1;
+let mapWidth = 0;
+let mapHeight = 0;
 const mapProjection = d3.geoMercator();
 const zoom = d3.zoom()
     .on('zoom', handleZoom);
@@ -131,7 +135,7 @@ function updateFilteredData() {
 }
 
 function aggregateArrestsByDistrict(data) {
-  const arrestedCrimes = data.filter(d => d.arrest === true && Number(d.district) > 0)
+  const arrestedCrimes = data.filter(d => d.arrest === true && Number(d.district) > 0 && Number.isFinite(d.year))
 
   // Group by district and count arrests
   const totals = d3.rollups(
@@ -209,7 +213,7 @@ function setupYearBrush() {
           .tickFormat(d3.format("d")))
 
   const brush = d3.brushX()
-    .extent([[0, 0], [brushWidth, brushHeight]])
+    .extent([[15, 0], [brushWidth - 15, brushHeight]])
     .on("end", function(event) {
       if (event.selection === null) {
         selectedYearRange = null
@@ -221,8 +225,14 @@ function setupYearBrush() {
 
       const [startPixel, endPixel] = event.selection
 
-      const startYear = Math.floor(xScale.invert(startPixel))
-      const endYear = Math.ceil(xScale.invert(endPixel)) - 1
+      const startYear = Math.max(
+        minYear,
+        Math.min(maxYear, Math.floor(xScale.invert(startPixel)))
+      );
+      const endYear = Math.max(
+        startYear,
+        Math.min(maxYear, Math.ceil(xScale.invert(endPixel)) - 1)
+      );
 
       selectedYearRange = [startYear, endYear]
       updateFilteredData()
@@ -284,18 +294,19 @@ function initCrimeData() {
 // Zooming adapted from: https://www.d3indepth.com/zoom-and-pan/
 function handleZoom(e) {
     // Map zooming function
-    // Pan and zoom the map
-    d3.select('.map g')
-        .attr('transform', e.transform);
-    
+  
     // Record zoom level
-    zoomLevel = e.transform.k
+    currentMapZoom = e.transform.k
+    
+    // Pan and zoom the map
+    mapg.attr('transform', e.transform);
+    
     // Keep features a constant size
-    d3.selectAll('.mapPoints')
-        .attr('r', pointSize / zoomLevel)
-        .style('stroke-width', `${pathWidth / zoomLevel}px`);
-    d3.selectAll('.map g path')
-        .style("stroke-width", `${pathWidth / zoomLevel}px`);
+    mapg.selectAll('.mapPoints')
+        .attr('r', d => d.radius / currentMapZoom)
+        .style('stroke-width', `${pathWidth / currentMapZoom}px`);
+    mapg.selectAll('.zipcode')
+        .style("stroke-width", `${pathWidth / currentMapZoom}px`);
 }
 function initZoom() {
     d3.select('.map')
@@ -319,11 +330,10 @@ function initMap(){
         var bounds = path.bounds(json);
         
         // Find aspect ratio of map and scale it up to desired dimensions
-        minSideLen = 500
-        mWidth = bounds[1][0] - bounds[0][0];
-        mHeight = bounds[1][1] - bounds[0][1];
+        let mWidth = bounds[1][0] - bounds[0][0];
+        let mHeight = bounds[1][1] - bounds[0][1];
         
-        var mScale = 500 / Math.min(mWidth, mHeight);
+        const mScale = 500 / Math.min(mWidth, mHeight);
         mWidth *= mScale;
         mHeight *= mScale;
 
@@ -345,7 +355,7 @@ function initMap(){
             .style("stroke", "black")
             .style("stroke-width", `${pathWidth}px`);;
         
-        
+        mapReady = true;
         initZoom();
         addMapLegend();
         updateMap();
@@ -354,55 +364,6 @@ function initMap(){
         console.error("Failed to load GeoJSON:", error);
     });;
     
-}
-function updateMap(){
-  mapg.selectAll('.mapPoints')
-    .data(filteredCrimes)
-    .join(
-      function(enter) {
-        return enter
-        .append('circle')
-        .attr('class', 'mapPoints')
-        .attr('cx', d => mapProjection([+d.longitude, +d.latitude])[0])
-        .attr('cy', d => mapProjection([+d.longitude, +d.latitude])[1])
-        .attr('r', pointSize / zoomLevel)
-        .style('opacity', .5) // Slight transparency for better visibility
-        .on('mouseover', function (event, d) {
-            // console.log(d) // See the data point in the console for debugging
-            d3.select('#tooltip')
-                // if you change opacity to hide it, you should also change opacity here
-                .style("display", 'block') // Make the tooltip visible
-                .html( // Change the html content of the <div> directly
-                `<strong>${d.primaryType}</strong><br/>
-                Community Area: ${d.communityArea}<br/>
-                District: ${d.district}
-                `)
-                .style("left", (event.pageX + 20) + "px")
-                .style("top", (event.pageY - 28) + "px");
-              d3.select(this) // Refers to the hovered circle
-                .attr('r', 1.5 * pointSize / zoomLevel)
-                .style('stroke', 'black')
-                .style('stroke-width', `${4 / zoomLevel}px`)
-        })
-        .on("mouseout", function (event, d) {
-            d3.select('#tooltip')
-            .style('display', 'none') // Hide tooltip when cursor leaves
-            d3.select(this) // Refers to the hovered circle
-                .attr('r', pointSize / zoomLevel)
-                .style('stroke', 'red')
-                .style('stroke-width', `${pathWidth / zoomLevel}px`);
-        })
-      },
-      function(update){
-        return update
-      },
-      function(exit){
-        return exit.remove()
-      }
-    )
-    .style('fill', d => d.arrest ? "red" : "none")
-    .style('stroke', 'red')
-    .style('stroke-width', `${pathWidth / zoomLevel}px`);
 }
 function addMapLegend(){
   let legendDotSize = 5;
@@ -419,9 +380,6 @@ function addMapLegend(){
       .style("fill", d => d[1])
       .style('stroke', 'red')
       .style('stroke-width', `${pathWidth}px`);
-    
-    
-    // use "colorScale" to fill them; colorScale is a global variable we defined, used in coloring bubbles
         
     mapsvg.selectAll("legendName")
         .data(legendInfo)
@@ -433,6 +391,145 @@ function addMapLegend(){
         .text(d => d[0]) 
         .attr("text-anchor", "left")
         .style('font-size', '13px')
+} 
+function updateMap() {
+  if (!mapReady) {
+    return;
+  }
+
+  const MAX_POINTS = 10000;
+  const GRID_SIZE = 9;
+  const useGrid = filteredCrimes.length > MAX_POINTS;
+
+  const marks = [];
+  const cells = new Map();
+
+  for (const crime of filteredCrimes) {
+    // Skip records without valid coordinates
+    if (!Number.isFinite(crime.latitude) ||
+        !Number.isFinite(crime.longitude)) {
+      continue;
+    }
+
+    const projected = mapProjection([
+      crime.longitude,
+      crime.latitude
+    ]);
+
+    if (!projected || !projected.every(Number.isFinite)) {
+      continue;
+    }
+
+    const [x, y] = projected;
+
+    if (x < 0 || x > mapWidth ||
+        y < 0 || y > mapHeight) {
+      continue;
+    }
+
+    // Small selections: show individual incidents
+    if (!useGrid) {
+      marks.push({
+        id: `point-${marks.length}`,
+        x: x,
+        y: y,
+        arrest: crime.arrest,
+        count: 1,
+        radius: pointSize,
+        primaryType: crime.primaryType,
+        year: crime.year,
+        communityArea: crime.communityArea,
+        district: crime.district
+      });
+      continue;
+    }
+
+    // Large selections: group nearby incidents
+    const gridX = Math.floor(x / GRID_SIZE);
+    const gridY = Math.floor(y / GRID_SIZE);
+    const id = `cell-${gridX}-${gridY}-${crime.arrest}`;
+
+    if (!cells.has(id)) {
+      cells.set(id, {
+        id: id,
+        totalX: 0,
+        totalY: 0,
+        arrest: crime.arrest,
+        count: 0
+      });
+    }
+
+    const cell = cells.get(id);
+    cell.totalX += x;
+    cell.totalY += y;
+    cell.count++;
+  }
+
+  if (useGrid) {
+    for (const cell of cells.values()) {
+      marks.push({
+        id: cell.id,
+        x: cell.totalX / cell.count,
+        y: cell.totalY / cell.count,
+        arrest: cell.arrest,
+        count: cell.count,
+        radius: Math.min(12, 2.5 + Math.sqrt(cell.count))
+      });
+    }
+  }
+
+  // Update existing AND new circle positions
+  const circles = mapg.selectAll(".mapPoints")
+    .data(marks, d => d.id)
+    .join("circle")
+    .attr("class", "mapPoints")
+    .attr("cx", d => d.x)
+    .attr("cy", d => d.y)
+    .attr("r", d => d.radius / currentMapZoom)
+    .style("opacity", 0.5)
+    .style("fill", d => d.arrest ? "red" : "none")
+    .style("stroke", "red")
+    .style("stroke-width", `${pathWidth / currentMapZoom}px`);
+  
+  circles
+  .on('mouseover', function (event, d) {
+      // console.log(d) // See the data point in the console for debugging
+      d3.select('#tooltip')
+          // if you change opacity to hide it, you should also change opacity here
+          .style("display", 'block') // Make the tooltip visible
+          .html( // Change the html content of the <div> directly
+          `<strong>${d.primaryType}</strong><br/>
+          Community Area: ${d.communityArea}<br/>
+          District: ${d.district}
+          `)
+          .style("left", (event.pageX + 20) + "px")
+          .style("top", (event.pageY - 28) + "px");
+        d3.select(this) // Refers to the hovered circle
+          .attr('r', 1.5 * pointSize / currentMapZoom)
+          .style('stroke', 'black')
+          .style('stroke-width', `${4 / currentMapZoom}px`)
+  })
+  .on("mouseout", function (event, d) {
+      d3.select('#tooltip')
+      .style('display', 'none') // Hide tooltip when cursor leaves
+      d3.select(this) // Refers to the hovered circle
+          .attr('r', pointSize / currentMapZoom)
+          .style('stroke', 'red')
+          .style('stroke-width', `${pathWidth / currentMapZoom}px`);
+  })
+
+  circles.selectAll("title")
+    .data(d => [d])
+    .join("title")
+    .text(d => useGrid
+      ? `${d.count} nearby incidents - ${d.arrest ? "Arrested" : "Not arrested"}`
+      : `${d.primaryType} (${d.year}) - ${d.arrest ? "Arrested" : "Not arrested"}`
+    );
+
+  d3.select("#mapStatus").text(
+    `${marks.length.toLocaleString()} map markers displayed` +
+    (useGrid ? " (nearby incidents grouped)" : "")
+  );
 }
 
 
@@ -556,6 +653,15 @@ function showBarChart() {
   // Remove the previous chart
   svg.selectAll("*").remove();
 
+  if (d3.select("#arrest-filter").property("value") === "false") {
+    d3.select("#filterStatus").text(
+      "Not Arrested is selected. This chart counts only incidents marked as arrested. The map still shows matching incidents."
+    );
+
+    showMessage("No arrests to display. See the map.");
+    return;
+  }
+
   // Handle cases where no districts match the filter
   if (filteredData.length === 0) {
     showMessage("No districts match these filters.");
@@ -650,7 +756,6 @@ function updateVis() {
     .attr("height", (d) =>
       height - yScale(Math.max(1, d.arrests))
     )
-    .style("fill", "steelblue")
     .style("cursor", "pointer")
     .on("click", (event, d) => {
       // Replace the bar chart with this district's yearly graph
@@ -686,11 +791,40 @@ function showTrendChart(district) {
   const yearlyChartData = filteredYearlyDistrictArrests === null
     ? arrestsByYearDistrict
     : filteredYearlyDistrictArrests;
-
-  // Get yearly arrest counts for the selected district
-  const trendData = yearlyChartData
+  
+  const districtTrend = yearlyChartData
     .filter(d => d.district === district)
     .sort((a, b) => a.year - b.year);
+
+  const referenceData = filteredYearlyDistrictArrests === null
+    ? arrestsByYearDistrict
+    : allData;
+
+  // All years represented in the selected dataset
+  const availableYears = [...new Set(
+  referenceData
+    .map(d => d.year)
+    .filter(Number.isFinite)
+  )]
+  .filter(year =>
+    selectedYearRange === null ||
+    (year >= selectedYearRange[0] &&
+    year <= selectedYearRange[1])
+  )
+  .sort((a, b) => a - b);
+
+  // Find each year's arrests for this district
+  const countsByYear = new Map(
+    districtTrend.map(d => [d.year, d.arrests])
+  );
+
+  // Include years with zero matching arrests
+  const trendData = availableYears.map(year => ({
+    district: district,
+    year: year,
+    arrests: countsByYear.get(year) ?? 0
+  }));
+
 
   // Handle missing yearly data
   if (trendData.length === 0) {
