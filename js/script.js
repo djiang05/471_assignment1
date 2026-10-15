@@ -35,7 +35,6 @@ let mapHeight = 0;
 const mapProjection = d3.geoMercator();
 const zoom = d3.zoom()
     .on('zoom', handleZoom);
-var zoomLevel = 1;
 
 
 // Create one SVG to display either chart
@@ -336,6 +335,9 @@ function initMap(){
         const mScale = 500 / Math.min(mWidth, mHeight);
         mWidth *= mScale;
         mHeight *= mScale;
+
+        mapWidth = mWidth;
+        mapHeight = mHeight;
 
         mapProjection.fitExtent([[10, 50], [mWidth-10, mHeight-10]], json);
         
