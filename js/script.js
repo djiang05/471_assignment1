@@ -126,6 +126,7 @@ function updateFilteredData() {
   console.log("Filtered crimes:", filteredCrimes.length)
 
   // TODO: Connect filteredCrimes to the map.
+  updateMap();
 }
 
 function aggregateArrestsByDistrict(data) {
@@ -250,7 +251,7 @@ function setupYearBrush() {
 
 
 function initCrimeData() {
-  d3.csv('./data/Crimes_-_2001_to_Present_20261007.csv',
+  d3.csv('./data/data_subset.csv',
     function(d) {
       return {
         year: d.Year.trim() === "" ? null : +d.Year,
@@ -270,6 +271,7 @@ function initCrimeData() {
 
       setupSelector()
       setupYearBrush()
+      initMap()
 
       console.log("Crime records loaded:", allData.length)
     })
@@ -349,7 +351,7 @@ function initMap(){
 }
 function updateMap(){
   mapg.selectAll('.mapPoints')
-    .data(filteredData)
+    .data(filteredCrimes)
     .join(
       function(enter) {
         return enter
