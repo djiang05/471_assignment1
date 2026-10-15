@@ -35,6 +35,7 @@ let mapHeight = 0;
 const mapProjection = d3.geoMercator();
 const zoom = d3.zoom()
     .on('zoom', handleZoom);
+var zoomLevel = 1;
 
 
 // Create one SVG to display either chart
@@ -268,15 +269,17 @@ function initCrimeData() {
         primaryType: d["Primary Type"],
         // making sure "true" and "True" are treated the same and same with "false" and "False"
         arrest: String(d.Arrest).toLowerCase() === "true",
-        communityArea: d["Community Area"],
+        communityArea: String(+d["Community Area"]).trim(),
         // some records have empty locations, this handles empty values to be null instead of a location 0
         latitude: d.Latitude === "" ? null : +d.Latitude,
         longitude: d.Longitude === "" ? null : +d.Longitude,
-        district: String(d.District).trim()
+        district: String(+d.District).trim()
       }
     })
     .then(data => {
-      allData = data
+      allData = data.filter(d =>  // Filtering out invalid points on the map
+        d.latitude != null && d.longitude != null
+      )
       filteredCrimes = allData
 
       setupSelector()
@@ -291,6 +294,8 @@ function initCrimeData() {
 // Zooming adapted from: https://www.d3indepth.com/zoom-and-pan/
 function handleZoom(e) {
     // Map zooming function
+  
+    // Record zoom level
     currentMapZoom = e.transform.k
     
     // Pan and zoom the map
@@ -332,10 +337,7 @@ function initMap(){
         mWidth *= mScale;
         mHeight *= mScale;
 
-        mapWidth = mWidth;
-        mapHeight = mHeight;
-
-        mapProjection.fitExtent([[10, 10], [mWidth-10, mHeight-10]], json);
+        mapProjection.fitExtent([[10, 50], [mWidth-10, mHeight-10]], json);
         
         // Set map svg dimensions
         mapsvg
@@ -355,11 +357,40 @@ function initMap(){
         
         mapReady = true;
         initZoom();
+        addMapLegend();
         updateMap();
     })
     .catch(function(error) {
         console.error("Failed to load GeoJSON:", error);
     });;
+    
+}
+function addMapLegend(){
+  let legendDotSize = 5;
+  let betweenSpacing = 100;
+  let offset = 150;
+  let legendInfo = [['Arrested', 'red'], ['Not Arrested', 'none']]
+  mapsvg.selectAll('legendDot')
+      .data(legendInfo)
+      .enter()
+      .append("circle")
+      .attr("cy", margin.top/2)
+      .attr("cx", (d, i) => i * (legendDotSize + betweenSpacing) + offset)
+      .attr('r', legendDotSize)
+      .style("fill", d => d[1])
+      .style('stroke', 'red')
+      .style('stroke-width', `${pathWidth}px`);
+        
+    mapsvg.selectAll("legendName")
+        .data(legendInfo)
+        .enter()
+        .append("text")
+        .attr("y", margin.top/2 + legendDotSize) 
+        .attr("x", (d, i) => i * (legendDotSize + betweenSpacing) + offset + 20)  
+        .style("fill", "black")  
+        .text(d => d[0]) 
+        .attr("text-anchor", "left")
+        .style('font-size', '13px')
 } 
 function updateMap() {
   if (!mapReady) {
@@ -406,7 +437,9 @@ function updateMap() {
         count: 1,
         radius: pointSize,
         primaryType: crime.primaryType,
-        year: crime.year
+        year: crime.year,
+        communityArea: crime.communityArea,
+        district: crime.district
       });
       continue;
     }
@@ -453,9 +486,37 @@ function updateMap() {
     .attr("cx", d => d.x)
     .attr("cy", d => d.y)
     .attr("r", d => d.radius / currentMapZoom)
+    .style("opacity", 0.5)
     .style("fill", d => d.arrest ? "red" : "none")
     .style("stroke", "red")
     .style("stroke-width", `${pathWidth / currentMapZoom}px`);
+  
+  circles
+  .on('mouseover', function (event, d) {
+      // console.log(d) // See the data point in the console for debugging
+      d3.select('#tooltip')
+          // if you change opacity to hide it, you should also change opacity here
+          .style("display", 'block') // Make the tooltip visible
+          .html( // Change the html content of the <div> directly
+          `<strong>${d.primaryType}</strong><br/>
+          Community Area: ${d.communityArea}<br/>
+          District: ${d.district}
+          `)
+          .style("left", (event.pageX + 20) + "px")
+          .style("top", (event.pageY - 28) + "px");
+        d3.select(this) // Refers to the hovered circle
+          .attr('r', 1.5 * pointSize / currentMapZoom)
+          .style('stroke', 'black')
+          .style('stroke-width', `${4 / currentMapZoom}px`)
+  })
+  .on("mouseout", function (event, d) {
+      d3.select('#tooltip')
+      .style('display', 'none') // Hide tooltip when cursor leaves
+      d3.select(this) // Refers to the hovered circle
+          .attr('r', pointSize / currentMapZoom)
+          .style('stroke', 'red')
+          .style('stroke-width', `${pathWidth / currentMapZoom}px`);
+  })
 
   circles.selectAll("title")
     .data(d => [d])
@@ -884,6 +945,10 @@ function showTrendChart(district) {
     .attr("y", -margin.left + 20)
     .attr("text-anchor", "middle")
     .text("Number of Arrests");
+
+  // Filter crimes data to current district so that changes will be reflected on the map
+  filteredCrimes = filteredCrimes.filter(d => Number(d.district) == district)
+  updateMap();
 }
 
 
