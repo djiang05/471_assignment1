@@ -7,11 +7,15 @@ const height = 600 - margin.top - margin.bottom;
 let allData = []
 let filteredData = []
 let selectedYearRange = null
-let xVar = 'income', yVar = 'lifeExp', sizeVar = 'population', targetYear = 2000
 let xScale, yScale, sizeScale
 const t = 1000; // 1000ms = 1 second
 
-var mapProjection = d3.geoMercator()
+// Global variables for map
+const mapsvg = d3.select(".map");
+const mapg = mapsvg.append('g');
+const pointSize = 3;
+const pathWidth = 1;
+var mapProjection = d3.geoMercator();
 let zoom = d3.zoom()
     .on('zoom', handleZoom);
 
@@ -23,47 +27,6 @@ const svg = d3.select('#vis')
     .attr('height', height + margin.top + margin.bottom)
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
-function init(){
-    d3.csv('./data/Crimes_-_2001_to_Present_20261007.csv', 
-        function(d){
-            const myToDatetime = d3.timeParse("%m/%d/%Y %I:%M:%S %p")
-            return {
-                id: +d.ID, 
-                // caseNumber: d["Case Number"],
-                date: myToDatetime(d.Date),
-                // block: d.Block,
-                // iucr: d.IUCR,
-                primaryType: d["Primary Type"],
-                description: d.Description,
-                locationDescription: d["Location Description"],
-                arrest: Boolean(d.Arrest),
-                domestic: Boolean(d.Domestic),
-                // beat: d.Beat,
-                // district: d.district,
-                // ward: +d.Ward,
-                // communityArea: +d["Community Area"],
-                fbiCode: d["FBI Code"],
-                xCoordinate: d["X Coordinate"],
-                yCoordinate: d["Y Coordinate"],
-                year: +d.Year,
-                // updatedOn: myToDatetime(d["Updated On"]),
-                latitude: +d.Latitude,
-                longitude: +d.Longitude,
-                // location: d.Location
-            }
-    })
-    .then(data => {
-            allData = data.filter(d => d.year != 0) // Filter out data without a valid year
-            setupSelector()
-            
-            // Initial rendering steps:
-            updateAxes()
-            updateVis()
-            addLegend()
-        })
-    .catch(error => console.error('Error loading data:', error));
-}
-
 
 
 // Here’s what each function is responsible for:
@@ -76,9 +39,12 @@ function handleZoom(e) {
     d3.select('.map g')
         .attr('transform', e.transform);
     
-    // Keep points a constant size
+    // Keep features a constant size
     d3.selectAll('.mapPoints')
-        .attr('r', 5 / e.transform.k);
+        .attr('r', pointSize / e.transform.k)
+        .style('stroke-width', `${pathWidth / e.transform.k}px`);
+    d3.selectAll('.map g path')
+        .style("stroke-width", `${pathWidth / e.transform.k}px`);
 }
 function initZoom() {
     d3.select('.map')
@@ -126,7 +92,7 @@ function setupYearBrush() {
 
   const xScale = d3.scaleLinear()
       .domain([minYear, maxYear + 1])
-      .range([0, brushWidth])
+      .range([15, brushWidth-15]) // Adjusting range to fit tick labels
 
   const svg = d3.select("#year-brush")
       .append("svg")
@@ -203,6 +169,7 @@ function updateFilteredData() {
   // TODO: Once the bar chart and map are finished,
   // call their update functions here using filteredData.
   // Both visualizations should reflect the current filters.
+  updateMap()
 }
 
 function updateAxes(){
@@ -222,82 +189,112 @@ function addLegend(){
 
 }
 
-// Chicago map taken from https://d3og.com/cjhin/27e01c636dcc0bfa256c7a225971354d/ and modified
+function initMap(){
+    // Chicago map taken from https://d3og.com/cjhin/27e01c636dcc0bfa256c7a225971354d/ and modified
 
-/* Original comments in this block:
-data comes from: https://github.com/smartchicago/chicago-atlas/blob/master/db/import/zipcodes.geojson
-lots of help from https://stackoverflow.com/questions/14492284/center-a-map-in-d3-given-a-geojson-object
-*/
-//Load in GeoJSON data
-d3.json("./data/zipcodes.geojson")
-.then(function(json) {
-    // create an initial projection
-    
-    //Define path generator
-    var path = d3.geoPath().projection(mapProjection);
-    var bounds = path.bounds(json);
-    
-    // Find aspect ratio of map and scale it up to desired dimensions
-    minSideLen = 500
-    mWidth = bounds[1][0] - bounds[0][0];
-    mHeight = bounds[1][1] - bounds[0][1];
-    
-    var mScale = 500 / Math.min(mWidth, mHeight);
-    mWidth *= mScale;
-    mHeight *= mScale;
+    /* Original comments in this block:
+    data comes from: https://github.com/smartchicago/chicago-atlas/blob/master/db/import/zipcodes.geojson
+    lots of help from https://stackoverflow.com/questions/14492284/center-a-map-in-d3-given-a-geojson-object
+    */
+    //Load in GeoJSON data
+    d3.json("./data/zipcodes.geojson")
+    .then(function(json) {
+        // create an initial projection
+        
+        //Define path generator
+        var path = d3.geoPath().projection(mapProjection);
+        var bounds = path.bounds(json);
+        
+        // Find aspect ratio of map and scale it up to desired dimensions
+        minSideLen = 500
+        mWidth = bounds[1][0] - bounds[0][0];
+        mHeight = bounds[1][1] - bounds[0][1];
+        
+        var mScale = 500 / Math.min(mWidth, mHeight);
+        mWidth *= mScale;
+        mHeight *= mScale;
 
-    mapProjection.fitExtent([[0, 0], [mWidth, mHeight]], json);
-    
-    // Create SVG element
-    var svg = d3.select(".map")
-                .attr("width", mWidth)
-                .attr("height", mHeight)
+        mapProjection.fitExtent([[10, 10], [mWidth-10, mHeight-10]], json);
+        
+        // Set map svg dimensions
+        mapsvg
+          .attr("width", mWidth)
+          .attr("height", mHeight)
 
-    // Create a g within the svg so we can zoom and pan it
-    var g = svg.append('g');
-
-    //Bind data and create one path per GeoJSON feature
-    g.selectAll("path")
-        .data(json.features)
-        .enter()
-        .append("path")
-        .attr("d", path)
-        .attr("class", "zipcode")
-        .style("fill", "none")
-        .style("stroke", "black")
-        .style("stroke-width", "1px");;
-
-    var center = d3.geoCentroid(json);
-
-    g.selectAll('.mapPoints')
-        .data([center])
-        .enter()
+        //Bind data and create one path per GeoJSON feature
+        mapg.selectAll("path")
+            .data(json.features)
+            .enter()
+            .append("path")
+            .attr("d", path)
+            .attr("class", "zipcode")
+            .style("fill", "none")
+            .style("stroke", "black")
+            .style("stroke-width", `${pathWidth}px`);;
+        
+        
+        initZoom();
+        updateMap();
+    })
+    .catch(function(error) {
+        console.error("Failed to load GeoJSON:", error);
+    });;
+}
+function updateMap(){
+  mapg.selectAll('.mapPoints')
+    .data(filteredData)
+    .join(
+      function(enter) {
+        return enter
         .append('circle')
-            .attr('class', 'mapPoints')
-            .attr('cx', d => mapProjection(d)[0])
-            .attr('cy', d => mapProjection(d)[1])
-            .attr('r', 5)
-            .style('fill', 'red');
-
-    initZoom();
-})
-.catch(function(error) {
-    console.error("Failed to load GeoJSON:", error);
-});;
-
+        .attr('class', 'mapPoints')
+        .attr('cx', d => mapProjection([+d.longitude, +d.latitude])[0])
+        .attr('cy', d => mapProjection([+d.longitude, +d.latitude])[1])
+        .attr('r', pointSize)
+      },
+      function(update){
+        return update
+      },
+      function(exit){
+        return exit.remove()
+      }
+    )
+    .style('fill', d => d.arrest ? "red" : "none")
+    .style('stroke', 'red')
+    .style('stroke-width', `${pathWidth}px`);
+}
 
 function init(){
-    d3.csv('./data/Crimes_-_2001_to_Present_20261007.csv', 
+    d3.csv('./data/data_subset.csv', 
         function(d){
+            const myToDatetime = d3.timeParse("%m/%d/%Y %I:%M:%S %p")
             return {  
-              year: d.Year.trim() === "" ? null : +d.Year,
-              primaryType: d["Primary Type"],
-              // making sure "true" and "True" are treated the same and same with "false" and "False"
-              arrest: String(d.Arrest).toLowerCase() === "true",
-              communityArea: d["Community Area"],
-              // some records have empty locations, this handles empty values to be null instead of a location 0
-              latitude: d.Latitude === "" ? null : +d.Latitude,
-              longitude: d.Longitude === "" ? null : +d.Longitude
+                year: d.Year.trim() === "" ? null : +d.Year,
+                primaryType: d["Primary Type"],
+                // making sure "true" and "True" are treated the same and same with "false" and "False"
+                arrest: String(d.Arrest).toLowerCase() === "true",
+                // some records have empty locations, this handles empty values to be null instead of a location 0
+                latitude: d.Latitude === "" ? null : +d.Latitude,
+                longitude: d.Longitude === "" ? null : +d.Longitude,
+                
+                // Secondary attributes that may not need to be included
+                // communityArea: d["Community Area"],
+                id: +d.ID, 
+                // caseNumber: d["Case Number"],
+                date: myToDatetime(d.Date),
+                // block: d.Block,
+                // iucr: d.IUCR,
+                description: d.Description,
+                locationDescription: d["Location Description"],
+                domestic: String(d.Domestic).toLowerCase() === "true",
+                // beat: d.Beat,
+                // district: d.district,
+                // ward: +d.Ward,
+                fbiCode: d["FBI Code"],
+                // xCoordinate: d["X Coordinate"],
+                // yCoordinate: d["Y Coordinate"],
+                // updatedOn: myToDatetime(d["Updated On"]),
+                // location: d.Location
             }
     })
     .then(data => {
@@ -314,10 +311,11 @@ function init(){
             updateAxes()
             updateVis()
             addLegend()
+
+            initMap()
+            console.log('Done loading!')
         })
     .catch(error => console.error('Error loading data:', error));
 }
-
-
 
 window.addEventListener('load', init);
