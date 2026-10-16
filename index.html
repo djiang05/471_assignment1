@@ -90,29 +90,47 @@
         Panning and zooming were obvious choices for an interaction with the map. <br>
         Due to there being too many different values for district, community area, and crime type, tooltips were chosen to communicate these values rather than trying to find different colors or shapes for each unique value of these attributes.<br>
         A map was chosen in the first place as it is one of the quickest and most effective ways to illustrate the geographical distribution of the data. From there, the above interactions emerged naturally.<br>
-        Fill was used to encode arrest status on the map, as it seemed more effective than shape. Shape may have required more focus to discern and overlapping points may have interfered with identifying the shape of a given mark. Since arrest is a boolean value, fill works well for this attribute.
+        Fill was used to encode arrest status on the map, as it seemed more effective than shape. Shape may have required more focus to discern and overlapping points may have interfered with identifying the shape of a given mark. Since arrest is a boolean value, fill works well for this attribute.<br>
+        <br>
+        Given the nature of data visualizations, we wanted to show meaningful data trends, and through the bar chart and the line graph we were able to do so. 
+        With these visualizations we can see where, how, and when crime has occurred allowing viewers to understand which areas may need more police attention, may be safer, and be trending upward/downward in terms of safety in their community. When starting to create these it was immediately clear that the data had to be aggregated and use a smaller number 
+        of variables to truly tell the story of crime and areas in need of more police attention. After data aggregation focus was shifted to building an interactive bar chart from this data.<br>
+       <br>
+        When thinking of dynamic queries and filters, having bar graph was an easy decision to make.
+        A bar graph is simple allowing immediate insights to be gained from the data, portray each independent district in a uniform categorical manner, and allow numerous follow-up questions to be asked. 
+        These follow up questions are where the queries come in which are much more favorable to implement on a bar chart. The filter/query options implemented here were: being able to filter between the minimum arrests made, crime type, arrests per by district, and year range of arrest data.<br>
+      <br>
+        Focusing in on the query of how many arrests were there per district per year, it became clear that a whole new data set and graph needed to be implemented, specifically a line graph accessible by click linked to each district to portray the trend of arrests made in each district over the years. While seeing all the arrests together tells one story, seeing the actual trend of arrests overtime can show even more. 
+        The combo of the bar graph along with the line graph ended up being a very effective combo to showcase the true arrest trend in each district.<br>
+       <br>
+        While everything visualization wise seemed to work, it turned out that the aggregated y-axis was having issues showing accurate arrest data. 
+        Some districts had extremly high arrest counts (~100,000) while others had very small arrest counts (~3) usually maing the smaller one practically invisible. 
+        This was troublesome at first, but after looking back over class slides it became clear that a logarithmic scale would solve this issue, and thus the problem was solved
+        and the graphs were ready to be merged with this page. 
 
-        Given the nature of data visualizations, we wanted to show meaningful data trends, and through the bar chart and the map we were able to do so. 
-        With these visualizations we can see where, how, and when crime has occurred allowing viewers to understand which areas may need more police attention, may be safer, and be trending upward/downward in terms of safety in their community
+
       </p>
       <h2>References:</h2>
       <p>
-        <b>Data Source:</b> <a href="https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-Present/ijzp-q8t2/about_data">Chicago Crimes - 2001 to Present</a><br><br>
-        <b>Visualization Examples Adapted:</b> <br>
+        <b>Data Sources:</b> <a href="https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-Present/ijzp-q8t2/about_data">Chicago Crimes - 2001 to Present</a> <br><br>
+        <b>Visualization Example Adapted:</b> <br>
         Map Zooming and Panning: <a href="https://www.d3indepth.com/zoom-and-pan/">D3 Zoom and Pan</a><br>
-        <a href="https://d3og.com/cjhin/27e01c636dcc0bfa256c7a225971354d/">Static Chicago Map</a>
+        <a href="https://d3og.com/cjhin/27e01c636dcc0bfa256c7a225971354d/">Static Chicago Map</a><br>
+        <br>
+        <b>Data Transforming Source: </b> <br>
+        Loading a Massive File in small chunks:<a href="https://www.geeksforgeeks.org/pandas/how-to-load-a-massive-file-as-small-chunks-in-pandas/">Geeks 4 Geeks</a><br>
       </p>
       <h2>Development Process:</h2>
       <p>
-        <b>Daniel:</b> Implemented bar chart and line charts for each district. <br>
+        <b>Daniel:</b> Implemented bar chart and line charts for each district. Roughly 10 man hours. <br>
         <b>David:</b> Implemented interactive map. Roughly 20 man hours. <br>
-        <b>Richard:</b> Implemented dynamic filtering/querying, performed optimization and bugfixes on both visualizations. <br><br>
+        <b>Richard:</b> Implemented dynamic filtering/querying, performed optimization and bugfixes on both visualizations. Roughly 10 man hours. <br><br>
 
         Daniel and David began work on each of their assigned visualizations. Richard later began work on interactions. Richard and David then worked to integrate interaction across visualizations so that filtering would be reflected on both the chart(s) and the map.
       </p>
       <h2>AI Usage:</h2>
       <p>
-        <b>Daniel:</b>To better understand linking graphs, using dynamic filters, and updating text with code examples, transforming/aggregating the data set into new csv's, and to assist with debugging by spotting the errors to fix<br>
+        <b>Daniel:</b>To better understand linking graphs, using dynamic filters, and updating text with code examples, helping to transform/aggregate the data set into new csv's, and to assist with debugging by spotting the errors to fix<br>
         <b>David:</b> AI Overview in Google Searches was used to find code examples and documentation for specific functions more quickly. <br>
         <b>Richard:</b> In order to better comprehend concepts of D3.js and JavaScript, to fix errors and to check our implementation in relation to the requirements of the project, I made use of ChatGPT as an additional tool. Furthermore, AI support took the form of examples of code, as well as advice concerning the process of improving data filtering and learnings gained with innovations in the scope of visualizations.
       </p>
