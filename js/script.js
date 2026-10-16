@@ -342,7 +342,8 @@ function initMapBrush() {
     mapg.selectAll(".mapPoints")
       .classed("brushed", d =>
         d.x >= x0 && d.x <= x1 &&
-        d.y >= y0 && d.y <= y1
+        d.y >= y0 && d.y <= y1 && 
+        d.arrest
       )
       .style("fill", d =>
         d.x >= x0 && d.x <= x1 &&
