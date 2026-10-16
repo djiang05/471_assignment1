@@ -107,13 +107,15 @@
         While everything visualization-wise seemed to work, it turned out that the aggregated y-axis was having issues showing accurate arrest data. 
         Some districts had extremely high arrest counts (~100,000) while others had very small arrest counts (~3) usually making the smaller one practically invisible. 
         This was troublesome at first, but after looking back over class slides it became clear that a logarithmic scale would solve this issue, and thus the problem was solved
-        and the graphs were ready to be merged with this page. A symlog scale was used in actual practice, so as to allow arrest counts of 1 to display properly. <br><br>
+        and the graphs were ready to be merged with this page. A symlog scale was used in actuality, so as to allow arrest counts of 1 to display properly. <br>
+        Additionally, tooltips were added for marks on both the bar graph and line plots in order to communicate the true values plotted. <br><br>
 
         For interaction with the map, panning and zooming were obvious choices. <br>
         Due to there being too many different values for district, community area, and crime type, tooltips were chosen to communicate these values rather than trying to find different colors or shapes for each unique value of these attributes.<br>
         A map was chosen in the first place as it is one of the quickest and most effective ways to illustrate the geographical distribution of the data. From there, the above interactions emerged naturally.<br>
-        Fill was used to encode arrest status on the map, as it seemed more effective than shape. Shape may have required more focus to discern and overlapping points may have interfered with identifying the shape of a given mark. Since arrest is a boolean value, fill works well for this attribute.<br>
-        Color was used to denote points selected by brushing. Since the point of brushing was to link to data on the other visualization that only encoded arrests, only points that have true as an arrest value are highlighted.
+        Fill was used to encode arrest status on the map, as it seemed more effective than shape. Shape may have required more focus to discern and overlapping points may have interfered with identifying the shape of a given mark. Since arrest is a boolean value, fill works well for this attribute. Color may also have worked, but fill was ultimately chosen since it only has two valid values which is appropriate for encoding a boolean attribute.<br>
+        Color was used to denote points selected by brushing as color is very effective at distinguishing points, especially when there are only two colors and points are translucent to allow points to show when behind other points. Other channels such as size and shape would make it much more difficult to discern selected points from nonselected points compared to color.
+        Since the point of brushing was to link to data on the other visualization that only encoded arrests, only points that have true as an arrest value are highlighted.
       </p>
       <h2>References:</h2>
       <p>
