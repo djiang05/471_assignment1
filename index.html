@@ -89,14 +89,16 @@
         Panning and zooming were obvious choices for an interaction with the map. <br>
         Due to there being too many different values for district, community area, and crime type, tooltips were chosen to communicate these values rather than trying to find different colors or shapes for each unique value of these attributes.<br>
         A map was chosen in the first place as it is one of the quickest and most effective ways to illustrate the geographical distribution of the data. From there, the above interactions emerged naturally.<br>
-        Fill was used to encode arrest status on the map, as it seemed more effective than shape. Shape may have required more focus to discern and overlapping points may have interfered with identifying the shape of a given mark. Since arrest is a boolean value, fill works well for this attribute.
+        Fill was used to encode arrest status on the map, as it seemed more effective than shape. Shape may have required more focus to discern and overlapping points may have interfered with identifying the shape of a given mark. Since arrest is a boolean value, fill works well for this attribute.<br>
+        Color was used to denote points selected by brushing. Since the point of brushing was to link to data on the other visualization that only encoded arrests, only points that have true as an arrest value are highlighted.
       </p>
       <h2>References:</h2>
       <p>
         <b>Data Source:</b> <a href="https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-Present/ijzp-q8t2/about_data">Chicago Crimes - 2001 to Present</a><br><br>
-        <b>Visualization Examples Adapted:</b> <br>
+        <b>Visualization Examples Referenced:</b> <br>
         Map Zooming and Panning: <a href="https://www.d3indepth.com/zoom-and-pan/">D3 Zoom and Pan</a><br>
         <a href="https://d3og.com/cjhin/27e01c636dcc0bfa256c7a225971354d/">Static Chicago Map</a>
+        Brushing and Linking: <a href="https://d3-graph-gallery.com/graph/interactivity_brush.html">Brushing in d3.js</a>
       </p>
       <h2>Development Process:</h2>
       <p>

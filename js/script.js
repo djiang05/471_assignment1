@@ -314,6 +314,7 @@ function initZoom() {
   );
 }
 
+// Referenced from https://d3-graph-gallery.com/graph/interactivity_brush.html
 function initMapBrush() {
   const brush = d3.brush()
   .extent([[0, 0], [mapWidth, mapHeight]])
@@ -332,6 +333,10 @@ function initMapBrush() {
     y1 = transform.invertY(y1);
 
     mapg.selectAll(".mapPoints")
+      .classed("brushed", d =>
+        d.x >= x0 && d.x <= x1 &&
+        d.y >= y0 && d.y <= y1
+      )
       .style("fill", d =>
         d.x >= x0 && d.x <= x1 &&
         d.y >= y0 && d.y <= y1
@@ -443,6 +448,14 @@ function initMap(){
             .style("fill", "none")
             .style("stroke", "black")
             .style("stroke-width", `${pathWidth}px`);;
+
+        mapsvg
+          .append("text")
+          .attr("class", "labels")
+          .attr("x", 10)
+          .attr("y", mapHeight - 10)
+          .style("font-size", "0.75rem")
+          .text("Use ctrl+click or cmd+click to brush.");
         
         mapReady = true;
         initMapBrush();
@@ -604,7 +617,9 @@ function updateMap() {
       .style('display', 'none') // Hide tooltip when cursor leaves
       d3.select(this) // Refers to the hovered circle
           .attr('r', pointSize / currentMapZoom)
-          .style('stroke', 'red')
+          .style('stroke', function() {
+            return d3.select(this).classed('brushed') ? 'blue' : 'red'; // revert stroke to correct color based on brushed or not 
+          })
           .style('stroke-width', `${pathWidth / currentMapZoom}px`);
   })
 
