@@ -78,6 +78,10 @@ h1 {
   fill: #285f8f;
 }
 
+#vis .linkedbar {
+  pointer-events: none;
+}
+
 .filters {
   display: flex;
   align-items: center;

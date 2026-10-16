@@ -12,6 +12,7 @@ const YEAR_DATA_PATH = "./data/arrests_by_year_district.csv";
 let arrestsByDistrict = [];
 let arrestsByYearDistrict = [];
 let filteredData = [];
+let brushedData = [];
 
 let xScale, yScale;
 
@@ -127,9 +128,6 @@ function updateFilteredData() {
     showBarChart()
   }
 
-  console.log("Filtered crimes:", filteredCrimes.length)
-
-  // TODO: Connect filteredCrimes to the map.
   updateMap();
 }
 
@@ -308,10 +306,99 @@ function handleZoom(e) {
         .style("stroke-width", `${pathWidth / currentMapZoom}px`);
 }
 function initZoom() {
-    d3.select('.map')
-    .call(zoom);
+  mapsvg.call(
+    zoom.filter(e =>
+      e.type === "wheel" ||
+      (!(e.metaKey || e.ctrlKey) && e.button === 0)
+    )
+  );
 }
 
+function initMapBrush() {
+  const brush = d3.brush()
+  .extent([[0, 0], [mapWidth, mapHeight]])
+  .filter(e => e.metaKey || e.ctrlKey)
+  .on("brush", e => {
+    const extent = e.selection;
+
+    // Ignore the event if there is no selection
+    if (!extent) return;
+    let [[x0, y0], [x1, y1]] = extent;
+    const transform = d3.zoomTransform(mapsvg.node());
+
+    x0 = transform.invertX(x0);
+    y0 = transform.invertY(y0);
+    x1 = transform.invertX(x1);
+    y1 = transform.invertY(y1);
+
+    mapg.selectAll(".mapPoints")
+      .style("fill", d =>
+        d.x >= x0 && d.x <= x1 &&
+        d.y >= y0 && d.y <= y1
+          ? (d.arrest ? "blue" : "none")
+          : (d.arrest ? "red" : "none")
+      )
+      .style("stroke", d =>
+        d.x >= x0 && d.x <= x1 &&
+        d.y >= y0 && d.y <= y1
+          ? (d.arrest ? "blue" : "red")
+          : "red"
+      );
+  })
+  .on("end", e => {
+    if (!e.selection) return;
+    let [[x0, y0], [x1, y1]] = e.selection;
+    const transform = d3.zoomTransform(mapsvg.node());
+
+    x0 = transform.invertX(x0);
+    y0 = transform.invertY(y0);
+    x1 = transform.invertX(x1);
+    y1 = transform.invertY(y1);
+
+    let brushedCrimes = filteredCrimes.filter(d => {
+      const point = mapProjection([
+        d.longitude,
+        d.latitude
+      ]);
+
+      return point &&
+        point[0] >= x0 && point[0] <= x1 &&
+        point[1] >= y0 && point[1] <= y1;
+    });
+
+    brushedData = aggregateArrestsByDistrict(brushedCrimes);
+
+    brushLayer.call(brush.move, null);
+    updateVis();
+  });
+
+  const brushLayer = mapsvg.append("g")
+    .call(brush);
+
+  const overlay = brushLayer.select(".overlay");
+  overlay.style("pointer-events", "none");
+
+  function updateOverlay(e) {
+    overlay.style(
+      "pointer-events",
+      e.ctrlKey || e.metaKey ? "all" : "none"
+    );
+  }
+
+  window.addEventListener("keydown", updateOverlay);
+  window.addEventListener("keyup", updateOverlay);
+  
+  // Make the drag cursor clear
+  brushLayer.select(".overlay")
+    .style("cursor", "crosshair");
+
+  // Make the selection visible while dragging
+  brushLayer.selectAll(".selection")
+    .attr("fill", "gray")
+    .attr("fill-opacity", 0.1)
+    .attr("stroke", "gray")
+    .attr("stroke-width", 1);
+}
 function initMap(){
     // Chicago map taken from https://d3og.com/cjhin/27e01c636dcc0bfa256c7a225971354d/ and modified
 
@@ -358,6 +445,7 @@ function initMap(){
             .style("stroke-width", `${pathWidth}px`);;
         
         mapReady = true;
+        initMapBrush();
         initZoom();
         addMapLegend();
         updateMap();
@@ -607,6 +695,8 @@ function init() {
       // Return from the line graph to the bar chart
       d3.select("#backButton")
         .on("click", () => {
+          filteredCrimes = allData;
+          updateMap();
           showBarChart();
         });
 
@@ -764,6 +854,25 @@ function updateVis() {
       // Replace the bar chart with this district's yearly graph
       showTrendChart(d.district);
     });
+
+  const linkedbars = svg
+    .selectAll(".linkedbar")
+    .data(brushedData, (d) => d.district)
+    .join("rect")
+    .style('fill', 'gold')
+    .attr("class", "linkedbar")
+    .attr("x", (d) => xScale(d.district))
+    .attr("y", (d) => yScale(Math.max(1, d.arrests)))
+    .attr("width", xScale.bandwidth())
+    .attr("height", (d) =>
+      height - yScale(Math.max(1, d.arrests))
+    )
+    .style("cursor", "pointer")
+    .on("click", (event, d) => {
+      // Replace the bar chart with this district's yearly graph
+      showTrendChart(d.district);
+    });
+  brushedData = [];
 
   // Add tooltips showing each district's total arrests
   bars
