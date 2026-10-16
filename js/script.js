@@ -729,7 +729,7 @@ function updateAxes() {
     .append("text")
     .attr("class", "labels")
     .attr("x", width / 2)
-    .attr("y", height + margin.bottom - 5)
+    .attr("y", height + margin.bottom - 25)
     .attr("text-anchor", "middle")
     .text("Police District");
 
@@ -759,6 +759,7 @@ function updateVis() {
     .attr("height", (d) =>
       height - yScale(Math.max(1, d.arrests))
     )
+    .style("fill", "crimson")
     .style("cursor", "pointer")
     .on("click", (event, d) => {
       // Replace the bar chart with this district's yearly graph
@@ -897,7 +898,7 @@ function showTrendChart(district) {
     .append("path")
     .datum(trendData)
     .attr("fill", "none")
-    .attr("stroke", "#e76f51")
+    .attr("stroke", "crimson")
     .attr("stroke-width", 2.5)
     .attr("d", line);
 
@@ -910,7 +911,7 @@ function showTrendChart(district) {
     .attr("cx", (d) => trendX(d.year))
     .attr("cy", (d) => trendY(d.arrests))
     .attr("r", 4)
-    .attr("fill", "#e76f51");
+    .attr("fill", "crimson");
 
   // Tooltip for each yearly point
   points
@@ -935,7 +936,7 @@ function showTrendChart(district) {
     .append("text")
     .attr("class", "labels")
     .attr("x", width / 2)
-    .attr("y", height + margin.bottom - 5)
+    .attr("y", height + margin.bottom - 25)
     .attr("text-anchor", "middle")
     .text("Year");
 

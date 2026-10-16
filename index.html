@@ -24,9 +24,9 @@
       <h1>Chicago Crime Arrests by District</h1>
 
       <p class="description">
-        The graph below shows the number of arrests reported in each police
-        district from 2001-present. Click on any district for a more detailed analysis
-        of the number of arrests made each year.
+        The graphs below show the number of arrests reported in each police
+        district/area from 2001-present. Click on the bar graph for districts for more detailed analysis
+        of the number of arrests made each year. Zoom in on the map and hover over each dot for more precise location and specific information.
       </p>
 
       <div class="filters">
@@ -79,7 +79,8 @@
       <p>
         The dataset used is the Chicago Crimes dataset. Each item in the data is either a reported incident or a record for each victim of a murder. 
         Crime Type, Arrest Status, and Year were selected to provide more detail about each crime. Each of these variables can be filtered on in the visualizations above.
-        Latitude, Longitude, Community Area, and Police District were used as geographical variables. Latitude and Longitude are used to plot observations on the map, and the Community Area is listed in tooltips as the GeoJSON used breaks Chicago down by community areas. In the bar chart, arrests are broken down by Police District in order to investigate differing arrest trends and behaviors across districts.
+        Latitude, Longitude, Community Area, and Police District were used as geographical variables. Latitude and Longitude are used to plot observations on the map, and the Community Area is listed in tooltips as the GeoJSON used breaks Chicago down by community areas. 
+        In the bar chart, arrests are broken down by Police District in order to investigate differing arrest trends and behaviors across districts, each linked to a districts arrest trends overtime on a line graph. 
       </p>
       <h2>Rationale:</h2>
       <p>
@@ -90,6 +91,9 @@
         Due to there being too many different values for district, community area, and crime type, tooltips were chosen to communicate these values rather than trying to find different colors or shapes for each unique value of these attributes.<br>
         A map was chosen in the first place as it is one of the quickest and most effective ways to illustrate the geographical distribution of the data. From there, the above interactions emerged naturally.<br>
         Fill was used to encode arrest status on the map, as it seemed more effective than shape. Shape may have required more focus to discern and overlapping points may have interfered with identifying the shape of a given mark. Since arrest is a boolean value, fill works well for this attribute.
+
+        Given the nature of data visualizations, we wanted to show meaningful data trends, and through the bar chart and the map we were able to do so. 
+        With these visualizations we can see where, how, and when crime has occurred allowing viewers to understand which areas may need more police attention, may be safer, and be trending upward/downward in terms of safety in their community
       </p>
       <h2>References:</h2>
       <p>
@@ -108,7 +112,7 @@
       </p>
       <h2>AI Usage:</h2>
       <p>
-        <b>Daniel:</b>  <br>
+        <b>Daniel:</b>To better understand linking graphs, using dynamic filters, and updating text with code examples, transforming/aggregating the data set into new csv's, and to assist with debugging by spotting the errors to fix<br>
         <b>David:</b> AI Overview in Google Searches was used to find code examples and documentation for specific functions more quickly. <br>
         <b>Richard:</b> In order to better comprehend concepts of D3.js and JavaScript, to fix errors and to check our implementation in relation to the requirements of the project, I made use of ChatGPT as an additional tool. Furthermore, AI support took the form of examples of code, as well as advice concerning the process of improving data filtering and learnings gained with innovations in the scope of visualizations.
       </p>
