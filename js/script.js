@@ -320,10 +320,17 @@ function initMapBrush() {
   .extent([[0, 0], [mapWidth, mapHeight]])
   .filter(e => e.metaKey || e.ctrlKey)
   .on("brush", e => {
+    if (Number(d3.select("#minArrests").property("value")) > 0) {
+      d3.select("#minArrests").property("value", 0);
+      updateFilteredData();
+    }
+    if (d3.select("#backButton").style('display') !== 'none') {
+      updateFilteredData();
+    }
     const extent = e.selection;
 
     // Ignore the event if there is no selection
-    if (!extent) return;
+    if (!extent) { return; }
     let [[x0, y0], [x1, y1]] = extent;
     const transform = d3.zoomTransform(mapsvg.node());
 
@@ -704,15 +711,13 @@ function init() {
       // Minimum-arrests filter
       d3.select("#minArrests")
         .on("input", () => {
-          showBarChart();
+          updateFilteredData();
         });
 
       // Return from the line graph to the bar chart
       d3.select("#backButton")
         .on("click", () => {
-          filteredCrimes = allData;
-          updateMap();
-          showBarChart();
+          updateFilteredData();
         });
 
       // Display the initial bar chart
@@ -800,8 +805,8 @@ function updateAxes() {
 
   // Logarithmic Y scale
   yScale = d3
-    .scaleLog()
-    .domain([1, Math.max(10, maxArrests)])
+    .scaleSymlog()
+    .domain([0, Math.max(10, maxArrests)])
     .range([height, 0])
     .nice();
 
